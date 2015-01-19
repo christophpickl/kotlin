@@ -133,7 +133,7 @@ public class ExpressionCodegen extends JetVisitor<StackValue, StackValue> implem
             @NotNull MemberCodegen<?> parentCodegen
     ) {
         this.state = state;
-        this.typeMapper = state.getTypeMapper();
+        this.typeMapper = parentCodegen.typeMapper;
         this.bindingContext = state.getBindingContext();
         this.v = new InstructionAdapter(mv);
         this.myFrameMap = frameMap;
@@ -175,6 +175,11 @@ public class ExpressionCodegen extends JetVisitor<StackValue, StackValue> implem
     @NotNull
     public GenerationState getState() {
         return state;
+    }
+
+    @NotNull
+    public JetTypeMapper getTypeMapper() {
+        return typeMapper;
     }
 
     @NotNull
@@ -327,7 +332,7 @@ public class ExpressionCodegen extends JetVisitor<StackValue, StackValue> implem
         new ImplementationBodyCodegen(declaration, objectContext, classBuilder, state, getParentCodegen()).generate();
 
         if (declaration instanceof JetClass && ((JetClass) declaration).isTrait()) {
-            Type traitImplType = state.getTypeMapper().mapTraitImpl(descriptor);
+            Type traitImplType = typeMapper.mapTraitImpl(descriptor);
             ClassBuilder traitImplBuilder = state.getFactory().newVisitor(TraitImpl(declaration, descriptor), traitImplType, declaration.getContainingFile());
             ClassContext traitImplContext = context.intoAnonymousClass(descriptor, this, OwnerKind.TRAIT_IMPL);
             new TraitImplBodyCodegen(declaration, traitImplContext, traitImplBuilder, state, parentCodegen).generate();
@@ -1948,7 +1953,7 @@ public class ExpressionCodegen extends JetVisitor<StackValue, StackValue> implem
             return stackValueForLocal(descriptor, index);
         }
 
-        return context.lookupInContext(descriptor, StackValue.LOCAL_0, state, false);
+        return context.lookupInContext(descriptor, StackValue.LOCAL_0, typeMapper, false);
     }
 
 
@@ -2085,10 +2090,11 @@ public class ExpressionCodegen extends JetVisitor<StackValue, StackValue> implem
             fieldName = JvmAbi.getDefaultFieldNameForProperty(propertyDescriptor.getName(), isDelegatedProperty);
         }
 
-        return StackValue.property(propertyDescriptor, backingFieldOwner,
-                            typeMapper.mapType(isDelegatedProperty && forceField ? delegateType : propertyDescriptor.getOriginal().getType()),
-                            isStaticBackingField, fieldName, callableGetter, callableSetter, state, receiver);
-
+        return StackValue.property(
+                propertyDescriptor, backingFieldOwner,
+                typeMapper.mapType(isDelegatedProperty && forceField ? delegateType : propertyDescriptor.getOriginal().getType()),
+                isStaticBackingField, fieldName, callableGetter, callableSetter, state, typeMapper, receiver
+        );
     }
 
     @Override
@@ -2436,7 +2442,7 @@ public class ExpressionCodegen extends JetVisitor<StackValue, StackValue> implem
 
     @NotNull
     private StackValue generateReceiver(@NotNull CallableDescriptor descriptor) {
-        return context.generateReceiver(descriptor, state, false);
+        return context.generateReceiver(descriptor, typeMapper, false);
     }
 
     // SCRIPT: generate script, move to ScriptingUtil
@@ -2629,7 +2635,8 @@ public class ExpressionCodegen extends JetVisitor<StackValue, StackValue> implem
         ResolvedCall<?> resolvedCall = getResolvedCallWithAssert(expression.getCallableReference(), bindingContext);
         FunctionDescriptor functionDescriptor = bindingContext.get(FUNCTION, expression);
         if (functionDescriptor != null) {
-            CallableReferenceGenerationStrategy strategy = new CallableReferenceGenerationStrategy(state, functionDescriptor, resolvedCall);
+            CallableReferenceGenerationStrategy strategy =
+                    new CallableReferenceGenerationStrategy(state, typeMapper, functionDescriptor, resolvedCall);
             return genClosure(expression, functionDescriptor, strategy, null, KotlinSyntheticClass.Kind.CALLABLE_REFERENCE_WRAPPER);
         }
 
@@ -2721,15 +2728,18 @@ public class ExpressionCodegen extends JetVisitor<StackValue, StackValue> implem
     }
 
     private static class CallableReferenceGenerationStrategy extends FunctionGenerationStrategy.CodegenBased<FunctionDescriptor> {
+        private final JetTypeMapper typeMapper;
         private final ResolvedCall<?> resolvedCall;
         private final FunctionDescriptor referencedFunction;
 
         public CallableReferenceGenerationStrategy(
                 @NotNull GenerationState state,
+                @NotNull JetTypeMapper typeMapper,
                 @NotNull FunctionDescriptor functionDescriptor,
                 @NotNull ResolvedCall<?> resolvedCall
         ) {
             super(state, functionDescriptor);
+            this.typeMapper = typeMapper;
             this.resolvedCall = resolvedCall;
             this.referencedFunction = (FunctionDescriptor) resolvedCall.getResultingDescriptor();
         }
@@ -2813,7 +2823,7 @@ public class ExpressionCodegen extends JetVisitor<StackValue, StackValue> implem
         private void computeAndSaveArguments(@NotNull List<? extends ValueArgument> fakeArguments, @NotNull ExpressionCodegen codegen) {
             for (ValueParameterDescriptor parameter : callableDescriptor.getValueParameters()) {
                 ValueArgument fakeArgument = fakeArguments.get(parameter.getIndex());
-                Type type = state.getTypeMapper().mapType(parameter);
+                Type type = typeMapper.mapType(parameter);
                 int localIndex = codegen.myFrameMap.getIndex(parameter);
                 codegen.tempVariables.put(fakeArgument.getArgumentExpression(), StackValue.local(localIndex, type));
             }
@@ -3589,7 +3599,7 @@ public class ExpressionCodegen extends JetVisitor<StackValue, StackValue> implem
                                                     argumentTypes);
 
             Type elementType = isGetter ? asmMethod.getReturnType() : ArrayUtil.getLastElement(argumentTypes);
-            return StackValue.collectionElement(collectionElementReceiver, elementType, resolvedGetCall, resolvedSetCall, this, state);
+            return StackValue.collectionElement(collectionElementReceiver, elementType, resolvedGetCall, resolvedSetCall, this);
         }
     }
 

@@ -190,10 +190,9 @@ public abstract class StackValue {
             Type type,
             ResolvedCall<FunctionDescriptor> getter,
             ResolvedCall<FunctionDescriptor> setter,
-            ExpressionCodegen codegen,
-            GenerationState state
+            ExpressionCodegen codegen
     ) {
-        return new CollectionElement(collectionElementReceiver, type, getter, setter, codegen, state);
+        return new CollectionElement(collectionElementReceiver, type, getter, setter, codegen);
     }
 
     @NotNull
@@ -232,10 +231,12 @@ public abstract class StackValue {
             @Nullable String fieldName,
             @Nullable CallableMethod getter,
             @Nullable CallableMethod setter,
-            GenerationState state,
+            @NotNull GenerationState state,
+            @NotNull JetTypeMapper typeMapper,
             @NotNull StackValue receiver
     ) {
-        return new Property(descriptor, backingFieldOwner, getter, setter, isStaticBackingField, fieldName, type, state, receiver);
+        return new Property(descriptor, backingFieldOwner, getter, setter, isStaticBackingField, fieldName, type, state, typeMapper,
+                            receiver);
     }
 
     @NotNull
@@ -986,18 +987,17 @@ public abstract class StackValue {
                 Type type,
                 ResolvedCall<FunctionDescriptor> resolvedGetCall,
                 ResolvedCall<FunctionDescriptor> resolvedSetCall,
-                ExpressionCodegen codegen,
-                GenerationState state
+                ExpressionCodegen codegen
         ) {
             super(type, false, false, collectionElementReceiver, true);
             this.resolvedGetCall = resolvedGetCall;
             this.resolvedSetCall = resolvedSetCall;
-            this.state = state;
             this.setterDescriptor = resolvedSetCall == null ? null : resolvedSetCall.getResultingDescriptor();
             this.getterDescriptor = resolvedGetCall == null ? null : resolvedGetCall.getResultingDescriptor();
             this.setter = resolvedSetCall == null ? null : codegen.resolveToCallable(setterDescriptor, false);
             this.getter = resolvedGetCall == null ? null : codegen.resolveToCallable(getterDescriptor, false);
             this.codegen = codegen;
+            this.state = codegen.getState();
         }
 
         @Override
@@ -1006,7 +1006,7 @@ public abstract class StackValue {
                 throw new UnsupportedOperationException("no getter specified");
             }
             if (getter instanceof CallableMethod) {
-                ((CallableMethod) getter).invokeWithNotNullAssertion(v, state, resolvedGetCall);
+                ((CallableMethod) getter).invokeWithNotNullAssertion(v, state, codegen.typeMapper, resolvedGetCall);
             }
             else {
                 StackValue result = ((IntrinsicMethod) getter).generate(codegen, this.type, null, Collections.<JetExpression>emptyList(), StackValue.none());
@@ -1066,7 +1066,7 @@ public abstract class StackValue {
                 Method asmMethod = method.getAsmMethod();
                 Type[] argumentTypes = asmMethod.getArgumentTypes();
                 coerce(topOfStackType, argumentTypes[argumentTypes.length - 1], v);
-                method.invokeWithNotNullAssertion(v, state, resolvedSetCall);
+                method.invokeWithNotNullAssertion(v, state, codegen.typeMapper, resolvedSetCall);
                 Type returnType = asmMethod.getReturnType();
                 if (returnType != Type.VOID_TYPE) {
                     pop(v, returnType);
@@ -1111,6 +1111,7 @@ public abstract class StackValue {
 
         private final PropertyDescriptor descriptor;
         private final GenerationState state;
+        private final JetTypeMapper typeMapper;
 
         private final String fieldName;
 
@@ -1118,7 +1119,7 @@ public abstract class StackValue {
                 @NotNull PropertyDescriptor descriptor, @NotNull Type backingFieldOwner,
                 @Nullable CallableMethod getter, @Nullable CallableMethod setter, boolean isStaticBackingField,
                 @Nullable String fieldName, @NotNull Type type, @NotNull GenerationState state,
-                @NotNull StackValue receiver
+                @NotNull JetTypeMapper typeMapper, @NotNull StackValue receiver
         ) {
             super(type, isStatic(isStaticBackingField, getter), isStatic(isStaticBackingField, setter), receiver, true);
             this.backingFieldOwner = backingFieldOwner;
@@ -1126,6 +1127,7 @@ public abstract class StackValue {
             this.setter = setter;
             this.descriptor = descriptor;
             this.state = state;
+            this.typeMapper = typeMapper;
             this.fieldName = fieldName;
         }
 
@@ -1134,7 +1136,7 @@ public abstract class StackValue {
             if (getter == null) {
                 assert fieldName != null : "Property should have either a getter or a field name: " + descriptor;
                 v.visitFieldInsn(isStaticPut ? GETSTATIC : GETFIELD, backingFieldOwner.getInternalName(), fieldName, this.type.getDescriptor());
-                genNotNullAssertionForField(v, state, descriptor);
+                genNotNullAssertionForField(v, state, typeMapper, descriptor);
                 coerceTo(type, v);
             }
             else {

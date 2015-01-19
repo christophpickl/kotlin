@@ -52,7 +52,7 @@ public class EnumSwitchCodegen extends SwitchCodegen {
 
         v.swap();
 
-        Type enumType = codegen.getState().getTypeMapper().mapClass(mapping.getEnumClassDescriptor());
+        Type enumType = codegen.getTypeMapper().mapClass(mapping.getEnumClassDescriptor());
         v.invokevirtual(enumType.getInternalName(), "ordinal", Type.getMethodDescriptor(Type.INT_TYPE), false);
         v.aload(Type.INT_TYPE);
     }

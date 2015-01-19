@@ -33,6 +33,7 @@ import org.jetbrains.kotlin.codegen.context.FieldOwnerContext;
 import org.jetbrains.kotlin.codegen.context.MethodContext;
 import org.jetbrains.kotlin.codegen.context.PackageContext;
 import org.jetbrains.kotlin.codegen.state.GenerationState;
+import org.jetbrains.kotlin.codegen.state.JetTypeMapper;
 import org.jetbrains.kotlin.config.IncrementalCompilation;
 import org.jetbrains.kotlin.descriptors.CallableMemberDescriptor;
 import org.jetbrains.kotlin.descriptors.DeclarationDescriptor;
@@ -77,6 +78,7 @@ import static org.jetbrains.org.objectweb.asm.Opcodes.*;
 public class PackageCodegen {
     private final ClassBuilderOnDemand v;
     private final GenerationState state;
+    private final JetTypeMapper typeMapper;
     private final Collection<JetFile> files;
     private final Type packageClassType;
     private final PackageFragmentDescriptor packageFragment;
@@ -85,6 +87,7 @@ public class PackageCodegen {
 
     public PackageCodegen(@NotNull GenerationState state, @NotNull Collection<JetFile> files, @NotNull FqName fqName) {
         this.state = state;
+        this.typeMapper = state.getTypeMapper();
         this.files = files;
         this.packageFragment = getOnlyPackageFragment(fqName);
         this.packageClassType = AsmUtil.asmTypeByFqNameWithoutInnerClasses(getPackageClassFqName(fqName));
@@ -174,7 +177,7 @@ public class PackageCodegen {
 
                     if (member instanceof DeserializedSimpleFunctionDescriptor) {
                         DeserializedSimpleFunctionDescriptor function = (DeserializedSimpleFunctionDescriptor) member;
-                        JvmMethodSignature signature = state.getTypeMapper().mapSignature(function, OwnerKind.PACKAGE);
+                        JvmMethodSignature signature = typeMapper.mapSignature(function, OwnerKind.PACKAGE);
                         memberCodegen.functionCodegen.generateMethod(OtherOrigin(function), signature, function,
                                                                      new FunctionGenerationStrategy() {
                                                                          @Override
@@ -395,7 +398,7 @@ public class PackageCodegen {
         JetFile file = classOrObject.getContainingJetFile();
         Type packagePartType = PackagePartClassUtils.getPackagePartType(file);
         CodegenContext context = CodegenContext.STATIC.intoPackagePart(packageFragment, packagePartType);
-        MemberCodegen.genClassOrObject(context, classOrObject, state, null);
+        MemberCodegen.genClassOrObject(context, classOrObject, state, typeMapper, null);
     }
 
     public void done() {

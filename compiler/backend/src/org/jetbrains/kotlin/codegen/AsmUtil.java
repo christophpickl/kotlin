@@ -586,6 +586,7 @@ public class AsmUtil {
     public static void genNotNullAssertionsForParameters(
             @NotNull InstructionAdapter v,
             @NotNull GenerationState state,
+            @NotNull JetTypeMapper typeMapper,
             @NotNull FunctionDescriptor descriptor,
             @NotNull FrameMap frameMap
     ) {
@@ -599,7 +600,7 @@ public class AsmUtil {
             if (type == null || isNullableType(type)) continue;
 
             int index = frameMap.getIndex(parameter);
-            Type asmType = state.getTypeMapper().mapType(type);
+            Type asmType = typeMapper.mapType(type);
             if (asmType.getSort() == Type.OBJECT || asmType.getSort() == Type.ARRAY) {
                 v.load(index, asmType);
                 v.visitLdcInsn(parameter.getName().asString());
@@ -612,25 +613,28 @@ public class AsmUtil {
     public static void genNotNullAssertionForField(
             @NotNull InstructionAdapter v,
             @NotNull GenerationState state,
+            @NotNull JetTypeMapper typeMapper,
             @NotNull PropertyDescriptor descriptor
     ) {
-        genNotNullAssertion(v, state, descriptor, "checkFieldIsNotNull");
+        genNotNullAssertion(v, state, typeMapper, descriptor, "checkFieldIsNotNull");
     }
 
     public static void genNotNullAssertionForMethod(
             @NotNull InstructionAdapter v,
             @NotNull GenerationState state,
+            @NotNull JetTypeMapper typeMapper,
             @NotNull ResolvedCall resolvedCall
     ) {
         CallableDescriptor descriptor = resolvedCall.getResultingDescriptor();
         if (descriptor instanceof ConstructorDescriptor) return;
 
-        genNotNullAssertion(v, state, descriptor, "checkReturnedValueIsNotNull");
+        genNotNullAssertion(v, state, typeMapper, descriptor, "checkReturnedValueIsNotNull");
     }
 
     private static void genNotNullAssertion(
             @NotNull InstructionAdapter v,
             @NotNull GenerationState state,
+            @NotNull JetTypeMapper typeMapper,
             @NotNull CallableDescriptor descriptor,
             @NotNull String assertMethodToCall
     ) {
@@ -644,7 +648,7 @@ public class AsmUtil {
         JetType type = descriptor.getReturnType();
         if (type == null || isNullableType(TypesPackage.lowerIfFlexible(type))) return;
 
-        Type asmType = state.getTypeMapper().mapReturnType(descriptor);
+        Type asmType = typeMapper.mapReturnType(descriptor);
         if (asmType.getSort() == Type.OBJECT || asmType.getSort() == Type.ARRAY) {
             v.dup();
             v.visitLdcInsn(descriptor.getContainingDeclaration().getName().asString());
@@ -664,7 +668,6 @@ public class AsmUtil {
         if (approximationInfo == null || !TypesPackage.assertNotNull(approximationInfo)) return stackValue;
 
         return new StackValue(stackValue.type) {
-
             @Override
             public void putSelector(@NotNull Type type, @NotNull InstructionAdapter v) {
                 stackValue.put(type, v);

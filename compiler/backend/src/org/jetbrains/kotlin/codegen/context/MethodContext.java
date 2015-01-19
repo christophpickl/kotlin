@@ -61,21 +61,25 @@ public class MethodContext extends CodegenContext<CallableMemberDescriptor> {
     }
 
     @Override
-    public StackValue lookupInContext(DeclarationDescriptor d, @Nullable StackValue result, GenerationState state, boolean ignoreNoOuter) {
+    public StackValue lookupInContext(
+            DeclarationDescriptor d,
+            @Nullable StackValue result,
+            JetTypeMapper typeMapper, boolean ignoreNoOuter
+    ) {
         if (getContextDescriptor() == d) {
             return result != null ? result : StackValue.LOCAL_0;
         }
 
-        return getParentContext().lookupInContext(d, result, state, ignoreNoOuter);
+        return getParentContext().lookupInContext(d, result, typeMapper, ignoreNoOuter);
     }
 
     @Nullable
-    public StackValue generateReceiver(@NotNull CallableDescriptor descriptor, @NotNull GenerationState state, boolean ignoreNoOuter) {
+    public StackValue generateReceiver(@NotNull CallableDescriptor descriptor, @NotNull JetTypeMapper typeMapper, boolean ignoreNoOuter) {
         if (getCallableDescriptorWithReceiver() == descriptor) {
-            return getReceiverExpression(state.getTypeMapper());
+            return getReceiverExpression(typeMapper);
         }
         ReceiverParameterDescriptor parameter = descriptor.getExtensionReceiverParameter();
-        return lookupInContext(parameter, StackValue.LOCAL_0, state, ignoreNoOuter);
+        return lookupInContext(parameter, StackValue.LOCAL_0, typeMapper, ignoreNoOuter);
     }
 
     @Override

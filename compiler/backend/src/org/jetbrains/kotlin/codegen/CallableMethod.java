@@ -115,10 +115,11 @@ public class CallableMethod implements Callable {
     public void invokeWithNotNullAssertion(
             @NotNull InstructionAdapter v,
             @NotNull GenerationState state,
+            @NotNull JetTypeMapper typeMapper,
             @NotNull ResolvedCall resolvedCall
     ) {
         invokeWithoutAssertions(v);
-        AsmUtil.genNotNullAssertionForMethod(v, state, resolvedCall);
+        AsmUtil.genNotNullAssertionForMethod(v, state, typeMapper, resolvedCall);
     }
 
     public void invokeWithoutAssertions(@NotNull InstructionAdapter v) {
@@ -152,10 +153,11 @@ public class CallableMethod implements Callable {
     public void invokeDefaultWithNotNullAssertion(
             @NotNull InstructionAdapter v,
             @NotNull GenerationState state,
+            @NotNull JetTypeMapper typeMapper,
             @NotNull ResolvedCall resolvedCall
     ) {
         invokeDefault(v);
-        AsmUtil.genNotNullAssertionForMethod(v, state, resolvedCall);
+        AsmUtil.genNotNullAssertionForMethod(v, state, typeMapper, resolvedCall);
     }
 
     public boolean isNeedsThis() {

@@ -19,6 +19,7 @@ package org.jetbrains.kotlin.codegen.inline;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.kotlin.codegen.state.GenerationState;
+import org.jetbrains.kotlin.codegen.state.JetTypeMapper;
 
 import java.util.Map;
 
@@ -29,13 +30,14 @@ public class RegeneratedClassContext extends InliningContext {
             @Nullable InliningContext parent,
             @NotNull Map<Integer, LambdaInfo> map,
             @NotNull GenerationState state,
+            @NotNull JetTypeMapper typeMapper,
             @NotNull NameGenerator nameGenerator,
             @NotNull Map<String, String> typeMapping,
             @NotNull ReifiedTypeInliner reifiedTypeInliner,
             boolean isInliningLambda,
             @NotNull AnonymousObjectGeneration anonymousObjectGeneration
     ) {
-        super(parent, map, state, nameGenerator, typeMapping, reifiedTypeInliner, isInliningLambda, true);
+        super(parent, map, state, typeMapper, nameGenerator, typeMapping, reifiedTypeInliner, isInliningLambda, true);
         this.anonymousObjectGeneration = anonymousObjectGeneration;
     }
 

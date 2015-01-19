@@ -76,7 +76,7 @@ public class TailRecursionCodegen {
         assignParameterValues(fd, callable, arguments);
         if (callable.getReceiverClass() != null) {
             if (resolvedCall.getExtensionReceiver() != fd.getExtensionReceiverParameter().getValue()) {
-                StackValue expression = context.getReceiverExpression(codegen.typeMapper);
+                StackValue expression = context.getReceiverExpression(codegen.getTypeMapper());
                 expression.store(StackValue.onStack(callable.getReceiverClass()), v, true);
             }
             else {

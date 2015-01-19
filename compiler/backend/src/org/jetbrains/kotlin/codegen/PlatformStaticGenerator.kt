@@ -40,7 +40,7 @@ class PlatformStaticGenerator(
     override fun invoke(codegen: ImplementationBodyCodegen, classBuilder: ClassBuilder) {
         val staticFunctionDescriptor = createStaticFunctionDescriptor(descriptor)
 
-        val jvmMethodSignature = state.getTypeMapper().mapSignature(staticFunctionDescriptor)
+        val jvmMethodSignature = codegen.typeMapper.mapSignature(staticFunctionDescriptor)
 
         codegen.functionCodegen.generateMethod(
                 Synthetic(declarationOrigin.element, staticFunctionDescriptor),

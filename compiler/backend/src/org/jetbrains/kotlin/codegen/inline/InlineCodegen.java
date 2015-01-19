@@ -91,7 +91,7 @@ public class InlineCodegen extends CallGenerator {
         assert functionDescriptor.getInlineStrategy().isInline() : "InlineCodegen could inline only inline function but " + functionDescriptor;
 
         this.state = state;
-        this.typeMapper = state.getTypeMapper();
+        this.typeMapper = codegen.getTypeMapper();
         this.codegen = codegen;
         this.callElement = callElement;
         this.functionDescriptor = functionDescriptor.getOriginal();
@@ -100,7 +100,7 @@ public class InlineCodegen extends CallGenerator {
 
         initialFrameSize = codegen.getFrameMap().getCurrentSize();
 
-        context = (MethodContext) getContext(functionDescriptor, state);
+        context = (MethodContext) getContext(functionDescriptor, typeMapper);
         jvmSignature = typeMapper.mapSignature(functionDescriptor, context.getContextKind());
 
         InlineStrategy inlineStrategy =
@@ -215,15 +215,18 @@ public class InlineCodegen extends CallGenerator {
 
         Parameters parameters = invocationParamBuilder.buildParameters();
 
-        InliningContext info = new RootInliningContext(expressionMap,
-                                                       state,
-                                                       codegen.getInlineNameGenerator()
-                                                               .subGenerator(functionDescriptor.getName().asString()),
-                                                       codegen.getContext(),
-                                                       callElement,
-                                                       codegen.getParentCodegen().getClassName(), reifiedTypeInliner);
+        InliningContext info = new RootInliningContext(
+                expressionMap,
+                state,
+                typeMapper,
+                codegen.getInlineNameGenerator().subGenerator(functionDescriptor.getName().asString()),
+                codegen.getContext(),
+                callElement,
+                codegen.getParentCodegen().getClassName(), reifiedTypeInliner
+        );
 
-        MethodInliner inliner = new MethodInliner(node, parameters, info, new FieldRemapper(null, null, parameters), isSameModule, "Method inlining " + callElement.getText()); //with captured
+        MethodInliner inliner = new MethodInliner(node, parameters, info, new FieldRemapper(null, null, parameters), isSameModule,
+                                                  "Method inlining " + callElement.getText()); //with captured
 
         LocalVarRemapper remapper = new LocalVarRemapper(parameters, initialFrameSize);
 
@@ -477,16 +480,17 @@ public class InlineCodegen extends CallGenerator {
         activeLambda = null;
     }
 
-    public static CodegenContext getContext(DeclarationDescriptor descriptor, GenerationState state) {
+    @NotNull
+    private static CodegenContext getContext(DeclarationDescriptor descriptor, JetTypeMapper typeMapper) {
         if (descriptor instanceof PackageFragmentDescriptor) {
             return new PackageContext((PackageFragmentDescriptor) descriptor, null, null);
         }
 
-        CodegenContext parent = getContext(descriptor.getContainingDeclaration(), state);
+        CodegenContext parent = getContext(descriptor.getContainingDeclaration(), typeMapper);
 
         if (descriptor instanceof ClassDescriptor) {
             OwnerKind kind = DescriptorUtils.isTrait(descriptor) ? OwnerKind.TRAIT_IMPL : OwnerKind.IMPLEMENTATION;
-            return parent.intoClass((ClassDescriptor) descriptor, kind, state);
+            return parent.intoClass((ClassDescriptor) descriptor, kind, typeMapper);
         }
         else if (descriptor instanceof FunctionDescriptor) {
             return parent.intoFunction((FunctionDescriptor) descriptor);

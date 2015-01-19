@@ -81,7 +81,7 @@ import static org.jetbrains.org.objectweb.asm.Opcodes.*;
 
 public class FunctionCodegen {
     public final GenerationState state;
-    private final JetTypeMapper typeMapper;
+    public final JetTypeMapper typeMapper;
     private final BindingContext bindingContext;
     private final CodegenContext owner;
     private final ClassBuilder v;
@@ -96,7 +96,7 @@ public class FunctionCodegen {
         this.owner = owner;
         this.v = v;
         this.state = state;
-        this.typeMapper = state.getTypeMapper();
+        this.typeMapper = memberCodegen.typeMapper;
         this.bindingContext = state.getBindingContext();
         this.memberCodegen = memberCodegen;
     }
@@ -334,15 +334,16 @@ public class FunctionCodegen {
             methodEnd = new Label();
         }
         else {
-            FrameMap frameMap = createFrameMap(parentCodegen.state, functionDescriptor, signature, isStaticMethod(context.getContextKind(),
-                                                                                                                  functionDescriptor));
+            FrameMap frameMap = createFrameMap(parentCodegen.typeMapper, functionDescriptor, signature,
+                                               isStaticMethod(context.getContextKind(), functionDescriptor));
 
             Label methodEntry = new Label();
             mv.visitLabel(methodEntry);
             context.setMethodStartLabel(methodEntry);
 
             if (!JetTypeMapper.isAccessor(functionDescriptor)) {
-                genNotNullAssertionsForParameters(new InstructionAdapter(mv), parentCodegen.state, functionDescriptor, frameMap);
+                genNotNullAssertionsForParameters(new InstructionAdapter(mv), parentCodegen.state, parentCodegen.typeMapper,
+                                                  functionDescriptor, frameMap);
             }
             methodEnd = new Label();
             context.setMethodEndLabel(methodEnd);
@@ -551,6 +552,7 @@ public class FunctionCodegen {
 
     static void generateConstructorWithoutParametersIfNeeded(
             @NotNull GenerationState state,
+            @NotNull JetTypeMapper typeMapper,
             @NotNull CallableMethod method,
             @NotNull ConstructorDescriptor constructorDescriptor,
             @NotNull ClassBuilder classBuilder,
@@ -561,7 +563,7 @@ public class FunctionCodegen {
         }
         int flags = getVisibilityAccessFlag(constructorDescriptor);
         MethodVisitor mv = classBuilder.newMethod(OtherOrigin(constructorDescriptor), flags, "<init>", "()V", null,
-                                                  getThrownExceptions(constructorDescriptor, state.getTypeMapper()));
+                                                  getThrownExceptions(constructorDescriptor, typeMapper));
 
         if (state.getClassBuilderMode() == ClassBuilderMode.LIGHT_CLASSES) return;
 
@@ -574,7 +576,7 @@ public class FunctionCodegen {
         int mask = 0;
         List<Integer> masks = new ArrayList<Integer>(1);
         for (ValueParameterDescriptor parameterDescriptor : constructorDescriptor.getValueParameters()) {
-            Type paramType = state.getTypeMapper().mapType(parameterDescriptor.getType());
+            Type paramType = typeMapper.mapType(parameterDescriptor.getType());
             pushDefaultValueOnStack(paramType, v);
             int i = parameterDescriptor.getIndex();
             if (i != 0 && i % Integer.SIZE == 0) {
@@ -663,7 +665,7 @@ public class FunctionCodegen {
             @NotNull MemberCodegen<?> parentCodegen,
             @NotNull GenerationState state
     ) {
-        FrameMap frameMap = createFrameMap(state, functionDescriptor, signature, isStatic);
+        FrameMap frameMap = createFrameMap(parentCodegen.typeMapper, functionDescriptor, signature, isStatic);
 
         ExpressionCodegen codegen = new ExpressionCodegen(mv, frameMap, signature.getReturnType(), methodContext, state, parentCodegen);
 
@@ -707,10 +709,10 @@ public class FunctionCodegen {
 
         CallableMethod method;
         if (functionDescriptor instanceof ConstructorDescriptor) {
-            method = state.getTypeMapper().mapToCallableMethod((ConstructorDescriptor) functionDescriptor);
+            method = parentCodegen.typeMapper.mapToCallableMethod((ConstructorDescriptor) functionDescriptor);
         }
         else {
-            method = state.getTypeMapper().mapToCallableMethod(functionDescriptor, false, methodContext);
+            method = parentCodegen.typeMapper.mapToCallableMethod(functionDescriptor, false, methodContext);
         }
 
         generator.genCallWithoutAssertions(method, codegen);
@@ -720,7 +722,7 @@ public class FunctionCodegen {
 
     @NotNull
     private static FrameMap createFrameMap(
-            @NotNull GenerationState state,
+            @NotNull JetTypeMapper typeMapper,
             @NotNull FunctionDescriptor function,
             @NotNull JvmMethodSignature signature,
             boolean isStatic
@@ -737,7 +739,7 @@ public class FunctionCodegen {
         }
 
         for (ValueParameterDescriptor parameter : function.getValueParameters()) {
-            frameMap.enter(parameter, state.getTypeMapper().mapType(parameter));
+            frameMap.enter(parameter, typeMapper.mapType(parameter));
         }
 
         return frameMap;

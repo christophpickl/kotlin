@@ -39,22 +39,16 @@ import static org.jetbrains.kotlin.resolve.jvm.diagnostics.JvmDeclarationOrigin.
 public class AnonymousObjectTransformer {
 
     protected final GenerationState state;
-
     protected final JetTypeMapper typeMapper;
 
-    private MethodNode constructor;
-
     private final InliningContext inliningContext;
-
     private final Type oldObjectType;
-
     private final Type newLambdaType;
-
     private final ClassReader reader;
-
     private final boolean isSameModule;
-
     private final Map<String, List<String>> fieldNames = new HashMap<String, List<String>>();
+
+    private MethodNode constructor;
 
     public AnonymousObjectTransformer(
             @NotNull String objectInternalName,
@@ -64,12 +58,12 @@ public class AnonymousObjectTransformer {
     ) {
         this.isSameModule = isSameModule;
         this.state = inliningContext.state;
-        this.typeMapper = state.getTypeMapper();
+        this.typeMapper = inliningContext.typeMapper;
         this.inliningContext = inliningContext;
         this.oldObjectType = Type.getObjectType(objectInternalName);
         this.newLambdaType = newLambdaType;
 
-        reader = InlineCodegenUtil.buildClassReaderByInternalName(state, objectInternalName);
+        this.reader = InlineCodegenUtil.buildClassReaderByInternalName(state, objectInternalName);
     }
 
     private void buildInvokeParamsFor(@NotNull ParametersBuilder builder, @NotNull MethodNode node) {
@@ -91,7 +85,7 @@ public class AnonymousObjectTransformer {
             @Override
             public void visit(int version, int access, @NotNull String name, String signature, String superName, String[] interfaces) {
                 if (signature != null) {
-                    ReifiedTypeInliner.SignatureReificationResult signatureResult = inliningContext.reifedTypeInliner.reifySignature(signature);
+                    ReifiedTypeInliner.SignatureReificationResult signatureResult = inliningContext.reifiedTypeInliner.reifySignature(signature);
                     signature = signatureResult.getNewSignature();
                     result.getReifiedTypeParametersUsages().mergeAll(signatureResult.getTypeParametersUsages());
                 }
@@ -173,7 +167,7 @@ public class AnonymousObjectTransformer {
             @NotNull MethodNode sourceNode,
             @NotNull ParametersBuilder capturedBuilder
     ) {
-        ReifiedTypeParametersUsages typeParametersToReify = inliningContext.reifedTypeInliner.reifyInstructions(sourceNode.instructions);
+        ReifiedTypeParametersUsages typeParametersToReify = inliningContext.reifiedTypeInliner.reifyInstructions(sourceNode.instructions);
         Parameters parameters = getMethodParametersWithCaptured(capturedBuilder, sourceNode);
 
         RegeneratedLambdaFieldRemapper remapper =

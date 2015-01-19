@@ -25,11 +25,14 @@ import org.jetbrains.kotlin.codegen.StackValue;
 import org.jetbrains.kotlin.codegen.intrinsics.IntrinsicMethods;
 import org.jetbrains.kotlin.codegen.state.JetTypeMapper;
 import org.jetbrains.kotlin.load.java.JvmAnnotationNames.KotlinSyntheticClass;
-import org.jetbrains.kotlin.resolve.jvm.JvmClassName;
-import org.jetbrains.kotlin.load.kotlin.PackageClassUtils;
 import org.jetbrains.kotlin.load.kotlin.KotlinBinaryClassCache;
 import org.jetbrains.kotlin.load.kotlin.KotlinJvmBinaryClass;
-import org.jetbrains.org.objectweb.asm.*;
+import org.jetbrains.kotlin.load.kotlin.PackageClassUtils;
+import org.jetbrains.kotlin.resolve.jvm.JvmClassName;
+import org.jetbrains.org.objectweb.asm.Label;
+import org.jetbrains.org.objectweb.asm.MethodVisitor;
+import org.jetbrains.org.objectweb.asm.Opcodes;
+import org.jetbrains.org.objectweb.asm.Type;
 import org.jetbrains.org.objectweb.asm.commons.InstructionAdapter;
 import org.jetbrains.org.objectweb.asm.commons.Method;
 import org.jetbrains.org.objectweb.asm.commons.RemappingMethodAdapter;
@@ -88,7 +91,7 @@ public class MethodInliner {
         this.nodeRemapper = nodeRemapper;
         this.isSameModule = isSameModule;
         this.errorPrefix = errorPrefix;
-        this.typeMapper = parent.state.getTypeMapper();
+        this.typeMapper = parent.typeMapper;
         this.result = InlineResult.create();
     }
 
@@ -143,8 +146,8 @@ public class MethodInliner {
                                                                                    new TypeRemapper(currentTypeMapping));
 
         InlineAdapter lambdaInliner = new InlineAdapter(remappingMethodAdapter, parameters.totalSize()) {
-
             private AnonymousObjectGeneration anonymousObjectGen;
+
             private void handleAnonymousObjectGeneration() {
                 anonymousObjectGen = iterator.next();
 
@@ -153,13 +156,12 @@ public class MethodInliner {
                     Type newLambdaType = Type.getObjectType(inliningContext.nameGenerator.genLambdaClassName());
                     currentTypeMapping.put(anonymousObjectGen.getOwnerInternalName(), newLambdaType.getInternalName());
                     AnonymousObjectTransformer transformer =
-                            new AnonymousObjectTransformer(anonymousObjectGen.getOwnerInternalName(),
-                                                           inliningContext
-                                                                   .subInlineWithClassRegeneration(
-                                                                           inliningContext.nameGenerator,
-                                                                           currentTypeMapping,
-                                                                           anonymousObjectGen),
-                                                           isSameModule, newLambdaType
+                            new AnonymousObjectTransformer(
+                                    anonymousObjectGen.getOwnerInternalName(),
+                                    inliningContext.subInlineWithClassRegeneration(
+                                            inliningContext.nameGenerator, currentTypeMapping, anonymousObjectGen
+                                    ),
+                                    isSameModule, newLambdaType
                             );
 
                     InlineResult transformResult = transformer.doTransform(anonymousObjectGen, nodeRemapper);

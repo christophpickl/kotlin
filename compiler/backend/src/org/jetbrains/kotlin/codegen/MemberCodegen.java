@@ -175,6 +175,7 @@ public abstract class MemberCodegen<T extends JetElement/* TODO: & JetDeclaratio
             @NotNull CodegenContext parentContext,
             @NotNull JetClassOrObject aClass,
             @NotNull GenerationState state,
+            @NotNull JetTypeMapper typeMapper,
             @Nullable MemberCodegen<?> parentCodegen
     ) {
         ClassDescriptor descriptor = state.getBindingContext().get(BindingContext.CLASS, aClass);
@@ -188,15 +189,15 @@ public abstract class MemberCodegen<T extends JetElement/* TODO: & JetDeclaratio
             badDescriptor(descriptor, state.getClassBuilderMode());
         }
 
-        Type classType = state.getTypeMapper().mapClass(descriptor);
+        Type classType = typeMapper.mapClass(descriptor);
         ClassBuilder classBuilder = state.getFactory().newVisitor(OtherOrigin(aClass, descriptor), classType, aClass.getContainingFile());
-        ClassContext classContext = parentContext.intoClass(descriptor, OwnerKind.IMPLEMENTATION, state);
+        ClassContext classContext = parentContext.intoClass(descriptor, OwnerKind.IMPLEMENTATION, typeMapper);
         new ImplementationBodyCodegen(aClass, classContext, classBuilder, state, parentCodegen).generate();
 
         if (aClass instanceof JetClass && ((JetClass) aClass).isTrait()) {
-            Type traitImplType = state.getTypeMapper().mapTraitImpl(descriptor);
+            Type traitImplType = typeMapper.mapTraitImpl(descriptor);
             ClassBuilder traitImplBuilder = state.getFactory().newVisitor(TraitImpl(aClass, descriptor), traitImplType, aClass.getContainingFile());
-            ClassContext traitImplContext = parentContext.intoClass(descriptor, OwnerKind.TRAIT_IMPL, state);
+            ClassContext traitImplContext = parentContext.intoClass(descriptor, OwnerKind.TRAIT_IMPL, typeMapper);
             new TraitImplBodyCodegen(aClass, traitImplContext, traitImplBuilder, state, parentCodegen).generate();
         }
     }
@@ -208,7 +209,7 @@ public abstract class MemberCodegen<T extends JetElement/* TODO: & JetDeclaratio
     }
 
     public void genClassOrObject(JetClassOrObject aClass) {
-        genClassOrObject(context, aClass, state, this);
+        genClassOrObject(context, aClass, state, typeMapper, this);
     }
 
     private void writeInnerClasses() {

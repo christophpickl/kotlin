@@ -19,46 +19,43 @@ package org.jetbrains.kotlin.codegen.inline;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.kotlin.codegen.state.GenerationState;
+import org.jetbrains.kotlin.codegen.state.JetTypeMapper;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 public class InliningContext {
-
     @Nullable
     private final InliningContext parent;
 
-    public final Map<Integer, LambdaInfo> expressionMap;
-
     public final GenerationState state;
-
+    public final JetTypeMapper typeMapper;
+    public final Map<Integer, LambdaInfo> expressionMap;
     public final NameGenerator nameGenerator;
-
     public final Map<String, String> typeMapping;
-
-    public final ReifiedTypeInliner reifedTypeInliner;
-
+    public final ReifiedTypeInliner reifiedTypeInliner;
     public final boolean isInliningLambda;
-
     public final boolean classRegeneration;
 
     protected InliningContext(
             @Nullable InliningContext parent,
-            @NotNull Map<Integer, LambdaInfo> map,
+            @NotNull Map<Integer, LambdaInfo> expressionMap,
             @NotNull GenerationState state,
+            @NotNull JetTypeMapper typeMapper,
             @NotNull NameGenerator nameGenerator,
             @NotNull Map<String, String> typeMapping,
-            @NotNull ReifiedTypeInliner reifedTypeInliner,
+            @NotNull ReifiedTypeInliner reifiedTypeInliner,
             boolean isInliningLambda,
             boolean classRegeneration
     ) {
         this.parent = parent;
-        expressionMap = map;
+        this.expressionMap = expressionMap;
         this.state = state;
+        this.typeMapper = typeMapper;
         this.nameGenerator = nameGenerator;
         this.typeMapping = typeMapping;
-        this.reifedTypeInliner = reifedTypeInliner;
+        this.reifiedTypeInliner = reifiedTypeInliner;
         this.isInliningLambda = isInliningLambda;
         this.classRegeneration = classRegeneration;
     }
@@ -77,14 +74,16 @@ public class InliningContext {
         return subInline(generator, additionalTypeMappings, isInliningLambda);
     }
 
-    public InliningContext subInlineWithClassRegeneration(@NotNull NameGenerator generator,
+    @NotNull
+    public InliningContext subInlineWithClassRegeneration(
+            @NotNull NameGenerator generator,
             @NotNull Map<String, String> additionalTypeMappings,
             @NotNull AnonymousObjectGeneration anonymousObjectGeneration
     ) {
         Map<String, String> newTypeMappings = new HashMap<String, String>(typeMapping);
         newTypeMappings.putAll(additionalTypeMappings);
-        return new RegeneratedClassContext(this, expressionMap, state, generator,
-                                           newTypeMappings, reifedTypeInliner, isInliningLambda, anonymousObjectGeneration);
+        return new RegeneratedClassContext(this, expressionMap, state, typeMapper, generator, newTypeMappings, reifiedTypeInliner,
+                                           isInliningLambda, anonymousObjectGeneration);
     }
 
     public InliningContext subInline(NameGenerator generator, Map<String, String> additionalTypeMappings, boolean isInliningLambda) {
@@ -99,8 +98,8 @@ public class InliningContext {
     ) {
         Map<String, String> newTypeMappings = new HashMap<String, String>(typeMapping);
         newTypeMappings.putAll(additionalTypeMappings);
-        return new InliningContext(this, expressionMap, state, generator,
-                                   newTypeMappings, reifedTypeInliner, isInliningLambda, isRegeneration);
+        return new InliningContext(this, expressionMap, state, typeMapper, generator, newTypeMappings, reifiedTypeInliner,
+                                   isInliningLambda, isRegeneration);
     }
 
     public boolean isRoot() {

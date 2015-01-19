@@ -46,8 +46,7 @@ public class JavaClassFunction extends IntrinsicMethod {
             @NotNull List<JetExpression> arguments,
             @NotNull StackValue receiver
     ) {
-        ResolvedCall<?> resolvedCall = CallUtilPackage.getResolvedCallWithAssert(
-                (JetElement) element, codegen.getBindingContext());
+        ResolvedCall<?> resolvedCall = CallUtilPackage.getResolvedCallWithAssert((JetElement) element, codegen.getBindingContext());
         JetType returnType = resolvedCall.getResultingDescriptor().getReturnType();
         assert returnType != null;
 
@@ -55,7 +54,7 @@ public class JavaClassFunction extends IntrinsicMethod {
 
         codegen.putReifierMarkerIfTypeIsReifiedParameter(type, ReifiedTypeInliner.JAVA_CLASS_MARKER_METHOD_NAME);
 
-        putJavaLangClassInstance(v, codegen.getState().getTypeMapper().mapType(type));
+        putJavaLangClassInstance(v, codegen.getTypeMapper().mapType(type));
 
         return getType(Class.class);
     }

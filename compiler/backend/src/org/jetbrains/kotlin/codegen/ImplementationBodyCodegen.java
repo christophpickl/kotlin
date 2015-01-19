@@ -1070,7 +1070,7 @@ public class ImplementationBodyCodegen extends ClassBodyCodegen {
                                                 DefaultParameterValueLoader.DEFAULT, null);
 
         CallableMethod callableMethod = typeMapper.mapToCallableMethod(constructorDescriptor);
-        FunctionCodegen.generateConstructorWithoutParametersIfNeeded(state, callableMethod, constructorDescriptor, v, myClass);
+        FunctionCodegen.generateConstructorWithoutParametersIfNeeded(state, typeMapper, callableMethod, constructorDescriptor, v, myClass);
 
         if (isClassObject(descriptor)) {
             context.recordSyntheticAccessorIfNeeded(constructorDescriptor, bindingContext);
@@ -1266,7 +1266,7 @@ public class ImplementationBodyCodegen extends ClassBodyCodegen {
                 }
                 else return;
 
-                constructorContext.lookupInContext(toLookup, StackValue.LOCAL_0, state, true);
+                constructorContext.lookupInContext(toLookup, StackValue.LOCAL_0, typeMapper, true);
             }
 
             @Override
@@ -1275,11 +1275,11 @@ public class ImplementationBodyCodegen extends ClassBodyCodegen {
                 assert descriptor instanceof CallableDescriptor ||
                        descriptor instanceof ClassDescriptor : "'This' reference target should be class or callable descriptor but was " + descriptor;
                 if (descriptor instanceof ClassDescriptor) {
-                    context.lookupInContext(descriptor, StackValue.LOCAL_0, state, true);
+                    context.lookupInContext(descriptor, StackValue.LOCAL_0, typeMapper, true);
                 }
 
                 if (descriptor instanceof CallableDescriptor) {
-                    constructorContext.generateReceiver((CallableDescriptor) descriptor, state, true);
+                    constructorContext.generateReceiver((CallableDescriptor) descriptor, typeMapper, true);
                 }
             }
         };
@@ -1310,7 +1310,7 @@ public class ImplementationBodyCodegen extends ClassBodyCodegen {
             ResolvedCall<?> resolvedCall = CallUtilPackage.getResolvedCallWithAssert(superCall, bindingContext);
             ClassDescriptor superClass = ((ConstructorDescriptor) resolvedCall.getResultingDescriptor()).getContainingDeclaration();
             if (superClass.isInner()) {
-                constructorContext.lookupInContext(superClass.getContainingDeclaration(), StackValue.LOCAL_0, state, true);
+                constructorContext.lookupInContext(superClass.getContainingDeclaration(), StackValue.LOCAL_0, typeMapper, true);
             }
 
             if (!isAnonymousObject(descriptor)) {

@@ -41,10 +41,10 @@ public abstract class CallGenerator {
                 @NotNull ExpressionCodegen codegen
         ) {
             if (!callDefault) {
-                callableMethod.invokeWithNotNullAssertion(codegen.v, codegen.getState(), resolvedCall);
+                callableMethod.invokeWithNotNullAssertion(codegen.v, codegen.getState(), codegen.getTypeMapper(), resolvedCall);
             }
             else {
-                callableMethod.invokeDefaultWithNotNullAssertion(codegen.v, codegen.getState(), resolvedCall);
+                callableMethod.invokeDefaultWithNotNullAssertion(codegen.v, codegen.getState(), codegen.getTypeMapper(), resolvedCall);
             }
         }
 

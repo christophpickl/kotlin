@@ -17,6 +17,7 @@
 package org.jetbrains.kotlin.codegen;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.kotlin.codegen.context.ClassContext;
 import org.jetbrains.kotlin.codegen.context.CodegenContext;
 import org.jetbrains.kotlin.codegen.state.GenerationState;
 import org.jetbrains.kotlin.codegen.state.JetTypeMapper;
@@ -53,7 +54,7 @@ public class SamWrapperCodegen {
 
     public SamWrapperCodegen(@NotNull GenerationState state, @NotNull SamType samType, @NotNull MemberCodegen<?> parentCodegen) {
         this.state = state;
-        this.typeMapper = state.getTypeMapper();
+        this.typeMapper = parentCodegen.typeMapper;
         this.samType = samType;
         this.parentCodegen = parentCodegen;
     }
@@ -142,9 +143,10 @@ public class SamWrapperCodegen {
             SimpleFunctionDescriptor erasedInterfaceFunction,
             JetType functionJetType
     ) {
-        // using static context to avoid creating ClassDescriptor and everything else
-        FunctionCodegen codegen = new FunctionCodegen(CodegenContext.STATIC.intoClass(
-                (ClassDescriptor) erasedInterfaceFunction.getContainingDeclaration(), OwnerKind.IMPLEMENTATION, state), cv, state, parentCodegen);
+        ClassContext context = CodegenContext.STATIC.intoClass(
+                (ClassDescriptor) erasedInterfaceFunction.getContainingDeclaration(), OwnerKind.IMPLEMENTATION, typeMapper
+        );
+        FunctionCodegen codegen = new FunctionCodegen(context, cv, state, parentCodegen);
 
         FunctionDescriptor invokeFunction = functionJetType.getMemberScope()
                 .getFunctions(Name.identifier("invoke")).iterator().next().getOriginal();

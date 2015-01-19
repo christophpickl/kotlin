@@ -21,7 +21,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.kotlin.codegen.*;
 import org.jetbrains.kotlin.codegen.binding.MutableClosure;
-import org.jetbrains.kotlin.codegen.state.GenerationState;
 import org.jetbrains.kotlin.codegen.state.JetTypeMapper;
 import org.jetbrains.kotlin.descriptors.*;
 import org.jetbrains.kotlin.resolve.BindingContext;
@@ -152,13 +151,17 @@ public abstract class CodegenContext<T extends DeclarationDescriptor> {
     }
 
     @NotNull
-    public ClassContext intoClass(ClassDescriptor descriptor, OwnerKind kind, GenerationState state) {
-        return new ClassContext(state.getTypeMapper(), descriptor, kind, this, null);
+    public ClassContext intoClass(@NotNull ClassDescriptor descriptor, @NotNull OwnerKind kind, @NotNull JetTypeMapper typeMapper) {
+        return new ClassContext(typeMapper, descriptor, kind, this, null);
     }
 
     @NotNull
-    public ClassContext intoAnonymousClass(@NotNull ClassDescriptor descriptor, @NotNull ExpressionCodegen codegen, @NotNull OwnerKind ownerKind) {
-        return new AnonymousClassContext(codegen.getState().getTypeMapper(), descriptor, ownerKind, this, codegen);
+    public ClassContext intoAnonymousClass(
+            @NotNull ClassDescriptor descriptor,
+            @NotNull ExpressionCodegen codegen,
+            @NotNull OwnerKind ownerKind
+    ) {
+        return new AnonymousClassContext(codegen.getTypeMapper(), descriptor, ownerKind, this, codegen);
     }
 
     @NotNull
@@ -274,7 +277,12 @@ public abstract class CodegenContext<T extends DeclarationDescriptor> {
         });
     }
 
-    public StackValue lookupInContext(DeclarationDescriptor d, @Nullable StackValue result, GenerationState state, boolean ignoreNoOuter) {
+    public StackValue lookupInContext(
+            DeclarationDescriptor d,
+            @Nullable StackValue result,
+            JetTypeMapper typeMapper,
+            boolean ignoreNoOuter
+    ) {
         StackValue myOuter = null;
         if (closure != null) {
             EnclosedValueDescriptor answer = closure.getCaptureVariables().get(d);
@@ -284,8 +292,9 @@ public abstract class CodegenContext<T extends DeclarationDescriptor> {
 
             for (LocalLookup.LocalLookupCase aCase : LocalLookup.LocalLookupCase.values()) {
                 if (aCase.isCase(d)) {
-                    Type classType = state.getTypeMapper().mapType(getThisDescriptor());
-                    StackValue.StackValueWithSimpleReceiver innerValue = aCase.innerValue(d, enclosingLocalLookup, state, closure, classType);
+                    Type classType = typeMapper.mapType(getThisDescriptor());
+                    StackValue.StackValueWithSimpleReceiver innerValue =
+                            aCase.innerValue(d, enclosingLocalLookup, typeMapper, closure, classType);
                     if (innerValue == null) {
                         break;
                     }
@@ -302,8 +311,9 @@ public abstract class CodegenContext<T extends DeclarationDescriptor> {
         StackValue resultValue;
         if (myOuter != null && getEnclosingClass() == d) {
             resultValue = result;
-        } else {
-            resultValue = parentContext != null ? parentContext.lookupInContext(d, result, state, ignoreNoOuter) : null;
+        }
+        else {
+            resultValue = parentContext != null ? parentContext.lookupInContext(d, result, typeMapper, ignoreNoOuter) : null;
         }
 
         if (myOuter != null && resultValue != null && !isStaticField(resultValue)) {

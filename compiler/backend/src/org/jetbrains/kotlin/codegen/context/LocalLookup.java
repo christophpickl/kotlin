@@ -21,7 +21,7 @@ import org.jetbrains.kotlin.codegen.ExpressionCodegen;
 import org.jetbrains.kotlin.codegen.JvmCodegenUtil;
 import org.jetbrains.kotlin.codegen.StackValue;
 import org.jetbrains.kotlin.codegen.binding.MutableClosure;
-import org.jetbrains.kotlin.codegen.state.GenerationState;
+import org.jetbrains.kotlin.codegen.state.JetTypeMapper;
 import org.jetbrains.kotlin.descriptors.*;
 import org.jetbrains.kotlin.load.java.JvmAbi;
 import org.jetbrains.kotlin.resolve.BindingContext;
@@ -45,7 +45,7 @@ public interface LocalLookup {
             public StackValue.StackValueWithSimpleReceiver innerValue(
                     DeclarationDescriptor d,
                     LocalLookup localLookup,
-                    GenerationState state,
+                    JetTypeMapper typeMapper,
                     MutableClosure closure,
                     Type classType
             ) {
@@ -54,8 +54,8 @@ public interface LocalLookup {
                 boolean idx = localLookup != null && localLookup.lookupLocal(vd);
                 if (!idx) return null;
 
-                Type sharedVarType = state.getTypeMapper().getSharedVarType(vd);
-                Type localType = state.getTypeMapper().mapType(vd);
+                Type sharedVarType = typeMapper.getSharedVarType(vd);
+                Type localType = typeMapper.mapType(vd);
                 Type type = sharedVarType != null ? sharedVarType : localType;
 
                 String fieldName = "$" + vd.getName();
@@ -81,7 +81,7 @@ public interface LocalLookup {
             public StackValue.StackValueWithSimpleReceiver innerValue(
                     DeclarationDescriptor d,
                     LocalLookup localLookup,
-                    GenerationState state,
+                    JetTypeMapper typeMapper,
                     MutableClosure closure,
                     Type classType
             ) {
@@ -90,7 +90,7 @@ public interface LocalLookup {
                 boolean idx = localLookup != null && localLookup.lookupLocal(vd);
                 if (!idx) return null;
 
-                BindingContext bindingContext = state.getBindingContext();
+                BindingContext bindingContext = typeMapper.getBindingContext();
                 Type localType = asmTypeForAnonymousClass(bindingContext, vd);
 
                 MutableClosure localFunClosure = bindingContext.get(CLOSURE, bindingContext.get(CLASS_FOR_FUNCTION, vd));
@@ -121,7 +121,7 @@ public interface LocalLookup {
             public StackValue.StackValueWithSimpleReceiver innerValue(
                     DeclarationDescriptor d,
                     LocalLookup enclosingLocalLookup,
-                    GenerationState state,
+                    JetTypeMapper typeMapper,
                     MutableClosure closure,
                     Type classType
             ) {
@@ -130,9 +130,9 @@ public interface LocalLookup {
                 }
 
                 JetType receiverType = closure.getEnclosingReceiverDescriptor().getType();
-                Type type = state.getTypeMapper().mapType(receiverType);
-                StackValue.StackValueWithSimpleReceiver innerValue = StackValue.field(type, classType, CAPTURED_RECEIVER_FIELD, false,
-                                                                                      StackValue.LOCAL_0);
+                Type type = typeMapper.mapType(receiverType);
+                StackValue.StackValueWithSimpleReceiver innerValue =
+                        StackValue.field(type, classType, CAPTURED_RECEIVER_FIELD, false, StackValue.LOCAL_0);
                 closure.setCaptureReceiver();
 
                 return innerValue;
@@ -151,7 +151,7 @@ public interface LocalLookup {
         public abstract StackValue.StackValueWithSimpleReceiver innerValue(
                 DeclarationDescriptor d,
                 LocalLookup localLookup,
-                GenerationState state,
+                JetTypeMapper typeMapper,
                 MutableClosure closure,
                 Type classType
         );
