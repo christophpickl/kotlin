@@ -29,7 +29,6 @@ class WithPredicate() {
   val p : Boolean
 }
 
-open class List<E>()
 open class AbstractList<E> : List<E?>
 open class ArrayList<E>() : Any, AbstractList<E?>, List<E?>
 
