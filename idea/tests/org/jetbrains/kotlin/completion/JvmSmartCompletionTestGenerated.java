@@ -893,6 +893,12 @@ public class JvmSmartCompletionTestGenerated extends AbstractJvmSmartCompletionT
             String fileName = JetTestUtils.navigationMetadata("idea/testData/completion/smart/inOperator/SmartCasts.kt");
             doTest(fileName);
         }
+
+        @TestMetadata("SpecialForCollection.kt")
+        public void testSpecialForCollection() throws Exception {
+            String fileName = JetTestUtils.navigationMetadata("idea/testData/completion/smart/inOperator/SpecialForCollection.kt");
+            doTest(fileName);
+        }
     }
 
     @TestMetadata("idea/testData/completion/smart/inheritors")
