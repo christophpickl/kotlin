@@ -28,7 +28,7 @@ import org.jetbrains.kotlin.idea.util.TypeNullability
 import org.jetbrains.kotlin.idea.util.FuzzyType
 import org.jetbrains.kotlin.descriptors.TypeParameterDescriptor
 
-//TODO: euristics for collection's?
+//TODO: heuristics for collection's?
 class TypesWithContainsDetector(
         private val scope: JetScope,
         private val argumentType: JetType
